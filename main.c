@@ -24,6 +24,26 @@ typedef struct inputParameters
     int bandera;
 }entrada;
 
+typedef struct monitorM { 
+       int size, theArray[1];
+        int emptyFull;    
+        void put(int x) {      
+            if (size == ARRAY_SIZE) wait(emptyFull);
+                theArray[size] = x;      
+                size++;      
+            if (size == 1) 
+            broadcast(emptyFull);    
+            }    
+        int get() {      
+            if (size == 0) 
+                wait(emptyFull);       
+                size--;      
+            if (size == ARRAY_SIZE-1) 
+                broadcast(emptyFull);
+            return theArray[size];
+            }
+            }ahh;
+
 //--------------------------------------------------------------------------------
 
 //FUNCIONES
@@ -78,8 +98,11 @@ int main(int argc, char const *argv[])
 {
     entrada* entradas = analizarEntradas(argc, argv);
 
-    //Crear hebras por cantidad de hijos.
-    //Crear monitor.
+    //Crear hebras por cantidad de discos
+    //Crear monitor por cantidad de hebras
+        //Cada monitor se enlazara a una hebra
+    //Cada monitor almacenara una cantidad BUFFER de datos (relacionados con su disco)
+        //Cuando el BUFFER se llene, le mandara los datos a la hebra.
 
     //Leer archivo.
         //A medida que se lea se les asigna los datos a las hebras por medio del monitor.
