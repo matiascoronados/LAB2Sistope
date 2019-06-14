@@ -97,6 +97,10 @@ entrada* analizarEntradas(int argc,char const *argv[])
 int main(int argc, char const *argv[])
 {
     entrada* entradas = analizarEntradas(argc, argv);
+    int numeroHebras = 10;
+    pthread_t *hebras;
+
+    hebras = (pthread_t*)malloc(numeroHebras*sizeof(pthread_t)); 
 
     //Crear hebras por cantidad de discos
     //Crear monitor por cantidad de hebras
