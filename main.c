@@ -6,7 +6,14 @@
 #include <pthread.h>
 #include <math.h>
 
-//OJO: Separa funciones de main despues!.
+//OJO: Separar funciones de main despues.
+//OJO: Debe reconocer errores de entrada.
+
+//CONSTANTES
+//--------------------------------------------------------------------------------
+char* parametros[5] = {"-i","-o","-n","-d","-b"};
+//--------------------------------------------------------------------------------
+
 //ESTRUCTURAS
 typedef struct inputParameters
 {
@@ -17,6 +24,7 @@ typedef struct inputParameters
     int bandera;
 }entrada;
 
+//--------------------------------------------------------------------------------
 
 //FUNCIONES
 entrada* crearEntrada()
@@ -44,7 +52,7 @@ entrada* analizarEntradas(int argc,char const *argv[])
     }
     else{
         for(int i = 1; i < argc ; i++){
-            for(int j = 0; j < NUMEROENTRADAS;j++){
+            for(int j = 0; j < 5;j++){
                 char* tipoEntrada = parametros[j];
                 if(strncmp(tipoEntrada,argv[i],2) == 0){
                     if(j == 0){p_entrada->archivoV = argv[i+1];}
@@ -63,15 +71,20 @@ entrada* analizarEntradas(int argc,char const *argv[])
     }
 }
 
+//--------------------------------------------------------------------------------
+
 //MAIN
 int main(int argc, char const *argv[])
 {
-    //Obtener datos de entrada.
+    entrada* entradas = analizarEntradas(argc, argv);
 
-    //Crear hebras
+    //Crear hebras por cantidad de hijos.
+    //Crear monitor.
+
     //Leer archivo.
-    //A medida que se lea se les asigna a las hebras.
-
+        //A medida que se lea se les asigna los datos a las hebras por medio del monitor.
+    
+    //Escribir resultados.
 
     return 0;
 }
