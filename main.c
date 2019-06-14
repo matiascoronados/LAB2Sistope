@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "structs.h"
+
 #include <pthread.h>
 #include <math.h>
 
@@ -11,7 +13,6 @@
 //CONSTANTES
 //--------------------------------------------------------------------------------
 char* parametros[5] = {"-i","-o","-n","-d","-b"};
-
 //--------------------------------------------------------------------------------
 
 //ESTRUCTURAS
@@ -24,70 +25,9 @@ typedef struct inputParameters
     int bandera;
 }entrada;
 
-//pthread_mutex_t resultados;
-
-
-
-typedef struct tipoMonitor {
-  pthread_mutex_t mutex;
-  char **buffer;
-  int totalBuffer;
-  int cantidadBuffer;
-  //Condiciones
-  pthread_cond_t lleno;
-  pthread_cond_t vacio;
-}monitor; 
-
-
-
-
-
 //--------------------------------------------------------------------------------
-//FUNCIONES MONITOR
 
-void monitor_escribir(char* a,monitor b) {
-    if(auxA.turno == 1){
-        wait(&auxA.sem);
-    }    
-    if(auxA.con_vacio == 1){
-        pthread_mutex_lock(&auxA.mutex);
-        auxA.con_vacio = 0;
-        auxA.buffer[auxA.cantidadBuffer] = a;
-        auxA.cantidadBuffer = auxA.cantidadBuffer+1;
-    }
-    else if(auxA.con_vacio == 0 && auxA.con_lleno == 0){
-        auxA.buffer[auxA.cantidadBuffer] = a;
-        auxA.cantidadBuffer = auxA.cantidadBuffer+1;
-        if(auxA.cantidadBuffer == auxA.totalBuffer - 1){
-            auxA.con_lleno = 1;
-            auxA.turno = 0;
-            pthread_mutex_unlock(&auxA.mutex);
-            signal(auxA.sem,NULL);
-        }
-    }
-}
-
-void monitor_leer(monitor b) {
-    if(auxA.turno == 0){
-        wait(&auxA.sem);
-    }
-    if(auxA.con_lleno == 1){
-        pthread_mutex_lock(&auxA.mutex);
-        printf("Cantidad buffer %d\n",auxA.cantidadBuffer);
-        for(int i = 0 ; i < auxA.cantidadBuffer;i++){
-            printf("%s",auxA.buffer[i]);
-        }
-        auxA.cantidadBuffer = 0;
-        auxA.con_lleno = 0;
-        auxA.con_vacio = 1;
-        auxA.turno = 1;
-        pthread_mutex_unlock(&auxA.mutex);
-        signal(auxA.sem,NULL);
-    }
-}   
-
-
-//FUNCIONES GENERALES
+//FUNCIONES
 entrada* crearEntrada()
 {
     entrada *p_entrada = malloc(sizeof(entrada));
@@ -97,24 +37,6 @@ entrada* crearEntrada()
     p_entrada->ndiscos = -1;
     p_entrada->bandera = 0;
     return p_entrada;
-}
-
-void inicializarMonitor(monitor *monitor)
-{
-    pthread_mutex_t aux = monitor->mutex;
-    monitor->buffer = (char**)malloc(sizeof(char*)*10);
-    for(int i = 0 ; i < 10;i++){
-        monitor->buffer[i] = (char*)malloc(sizeof(char*)*1000);
-    }
-    monitor->con_lleno = 0;
-    monitor->con_vacio = 1;
-    monitor->totalBuffer = 10;
-    monitor->cantidadBuffer = 0;
-
-    monitor->turno = 0;
-    monitor->sem = 1;
-
-    pthread_mutex_init(&aux,NULL);
 }
 
 
@@ -127,7 +49,7 @@ entrada* analizarEntradas(int argc,char const *argv[])
     }
     else if(argc > 10){
         printf("Demasiados parametros, verifique los datos de entrada\n");
-        exit(0);        
+        exit(0);
     }
     else{
         for(int i = 1; i < argc ; i++){
@@ -150,13 +72,91 @@ entrada* analizarEntradas(int argc,char const *argv[])
     }
 }
 
+void escribirDatos(monitor *m){
 
-void *funcion (void *dato)
-{
-    int datoA = (int)(long)dato;
-    monitor_leer(auxA);
+  int i, dato, pos = 0;
+  pthread_mutex_lock(&m -> mutex);
+  for(i = 0; i < 200; i++){
+
+    dato = i;
+    //printf("hebra1 cantidad de datos: %d\n", m -> cantidadDeDatos);
+    if(m -> cantidadDeDatos == m -> capacidadBuffer) {
+
+      pthread_mutex_lock(&m -> mutexVacio);
+      pthread_mutex_unlock(&m -> mutex);
+      pthread_cond_wait(&m -> bufferVacio, &m -> mutexVacio);
+      pthread_mutex_unlock(&m -> mutexVacio);
+    }
+    pthread_mutex_lock(&m -> modificarB);
+    m -> buffer[pos] = i;
+    //printf("hebra1 escribe dato: %d\n", i);
+    pos = (pos + 1);
+    m -> cantidadDeDatos = m -> cantidadDeDatos + 1;
+    if (m -> cantidadDeDatos < 19) {
+      printf("%d ", dato);
+    }
+    else{
+      printf("%d\n", dato);
+    }
+    pthread_mutex_unlock(&m -> modificarB);
+
+    if (m -> cantidadDeDatos == m -> capacidadBuffer - 1) {
+      pthread_mutex_lock(&m -> mutexLleno);
+      pthread_cond_signal(&m -> bufferLleno);
+      sleep(1);
+      pthread_mutex_unlock(&m -> mutexLleno);
+    }
+    //pthread_cond_signal(&m -> bufferLleno);
+
+
+
+  }
+  pthread_mutex_unlock(&m -> mutex);
+
+  pthread_exit(0);
 }
 
+void procesarDatos(monitor *m){
+
+  int i, dato, pos = 0;
+
+  for(i = 0; i < 200; i++){
+
+    pthread_mutex_lock(&m -> mutex);
+    //printf("hebra2 cantidad de datos: %d\n", m -> cantidadDeDatos);
+    if(m -> cantidadDeDatos == 0) {
+      pthread_mutex_lock(&m -> mutexLleno);
+      pthread_mutex_unlock(&m -> mutex);
+      pthread_cond_wait(&m -> bufferLleno, &m -> mutexLleno);
+      pthread_mutex_unlock(&m -> mutexLleno);
+    }
+    pthread_mutex_lock(&m -> modificarA);
+    dato = m -> buffer[pos];
+    //printf("hebra2 lee dato: %d\n", dato);
+    pos = (pos + 1);
+    m -> cantidadDeDatos = m -> cantidadDeDatos - 1;
+    pthread_mutex_unlock(&m -> modificarA);
+
+    if (m -> cantidadDeDatos == 0) {
+      pthread_mutex_lock(&m -> mutexVacio);
+      pthread_cond_signal(&m -> bufferVacio);
+      //sleep(1);
+      pthread_mutex_unlock(&m -> mutexVacio);
+    }
+    //pthread_cond_signal(&m -> bufferVacio);
+    printf("Hebra2 consume: %d\n", dato);
+
+    pthread_mutex_unlock(&m -> mutex);
+
+  }
+
+  pthread_exit(0);
+}
+
+void *funcion (void* entrada)
+{
+    printf("\nENTRE");
+}
 
 //--------------------------------------------------------------------------------
 
@@ -165,46 +165,32 @@ int main(int argc, char const *argv[])
 {
     //entrada* entradas = analizarEntradas(argc, argv);
 
+
     int numeroHebras = 10;
+    monitor *m;
+    m -> capacidadBuffer = 20;
+    m -> cantidadDeDatos = 0;
+    pthread_t h1, h2;
 
-    pthread_t *hebras;
-    monitor *monitores;
-    
-    pthread_t auxB;
-
-    hebras = (pthread_t*)malloc(numeroHebras*sizeof(pthread_t)); 
-    monitores = (monitor*)malloc(numeroHebras*sizeof(monitor));
-
-    for(int i = 0 ; i < numeroHebras;i++){
-        inicializarMonitor(&monitores[i]);
-    }
-
-    for(int i = 0 ; i < numeroHebras;i++){
-        pthread_create(&hebras[i], NULL, funcion, (void *)1);
-    }
-
-    for(int i = 0 ; i < numeroHebras;i++){
-        pthread_join(hebras[i], NULL);
-    }
-
-    //TEST
-
-    inicializarMonitor(&auxA);
-    pthread_create(&auxB, NULL, funcion, (void *)1);
+    pthread_mutex_init(&m -> mutex, NULL);
+    pthread_mutex_init(&m -> mutexLleno, NULL);
+    pthread_mutex_init(&m -> modificarA, NULL);
+    pthread_mutex_init(&m -> modificarB, NULL);
+    pthread_mutex_init(&m -> mutexVacio, NULL);
+    pthread_cond_init(&m -> bufferLleno, NULL);
+    pthread_cond_init(&m -> bufferVacio, NULL);
 
 
-    for(int i = 0 ; i < 10 ; i ++)
-    {
-        monitor_escribir("AHHHHHH\n",auxA);
-    }
-    for(int i = 0 ; i < 10 ; i ++)
-    {
-        monitor_escribir("BHBHBHB\n",auxA);
-    }
-
-    pthread_join(auxB, NULL);
-    
-
+    pthread_create(&h1, NULL, (void *)&escribirDatos, m);
+    pthread_create(&h2, NULL, (void *)&procesarDatos, m);
+    pthread_join(h1, NULL);
+    //printf("hebra1\n");
+    pthread_join(h2, NULL);
+  //  printf("hebra2\n");
+    pthread_mutex_destroy(&m -> mutex);
+    pthread_cond_destroy(&m -> bufferLleno);
+    pthread_cond_destroy(&m -> bufferVacio);
+    exit(0);
 
 
     //Crear hebras por cantidad de discos
@@ -215,7 +201,8 @@ int main(int argc, char const *argv[])
 
     //Leer archivo.
         //A medida que se lea se les asigna los datos a las hebras por medio del monitor.
-    
+
     //Escribir resultados.
+
     return 0;
 }
