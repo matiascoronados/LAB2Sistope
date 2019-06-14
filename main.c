@@ -12,8 +12,6 @@
 //--------------------------------------------------------------------------------
 char* parametros[5] = {"-i","-o","-n","-d","-b"};
 
-
-
 //--------------------------------------------------------------------------------
 
 //ESTRUCTURAS
@@ -26,82 +24,67 @@ typedef struct inputParameters
     int bandera;
 }entrada;
 
+//pthread_mutex_t resultados;
+
+
+
 typedef struct tipoMonitor {
   pthread_mutex_t mutex;
-
   char **buffer;
   int totalBuffer;
   int cantidadBuffer;
-
   //Condiciones
-  int con_lleno;
-  int con_vacio;
-  int turno;
-  int sem;
+  pthread_cond_t lleno;
+  pthread_cond_t vacio;
 }monitor; 
 
 
-monitor auxA;
-//--------------------------------------------------------------------------------
 
+
+
+//--------------------------------------------------------------------------------
 //FUNCIONES MONITOR
 
 void monitor_escribir(char* a,monitor b) {
-    if(auxA.turno == 1)
-    {
-        printf("\nENTRE ESPERA escribir");
+    if(auxA.turno == 1){
         wait(&auxA.sem);
+    }    
+    if(auxA.con_vacio == 1){
+        pthread_mutex_lock(&auxA.mutex);
+        auxA.con_vacio = 0;
+        auxA.buffer[auxA.cantidadBuffer] = a;
+        auxA.cantidadBuffer = auxA.cantidadBuffer+1;
     }
-    else
-    {
-        if(auxA.con_vacio == 1)
-        {
-            pthread_mutex_lock(&auxA.mutex);
-            auxA.con_vacio = 0;
-            auxA.buffer[auxA.cantidadBuffer] = a;
-            auxA.cantidadBuffer = auxA.cantidadBuffer+1;
-        }
-        else if(auxA.con_vacio == 0 && auxA.con_lleno == 0)
-        {
-            auxA.buffer[auxA.cantidadBuffer] = a;
-            auxA.cantidadBuffer = auxA.cantidadBuffer+1;
-            if(auxA.cantidadBuffer == auxA.totalBuffer - 1)
-            {
-                auxA.con_lleno = 1;
-                pthread_mutex_unlock(&auxA.mutex);
-                auxA.turno = 0;
-                signal(auxA.sem,NULL);
-            }
-        }
-    }
-}
-
-void monitor_leer(monitor b) {
-    if(auxA.turno == 0)
-    {
-        printf("\nENTRE ESPERA leer");
-        wait(&auxA.sem);
-    }
-    else
-    {
-        if(auxA.con_lleno == 1)
-        {
-            pthread_mutex_lock(&auxA.mutex);
-            for(int i = 0 ; i < auxA.cantidadBuffer;i++)
-            {
-                printf("%s",auxA.buffer[i]);
-            }
-            auxA.cantidadBuffer = 0;
-            auxA.con_lleno = 0;
-            auxA.con_vacio = 1;
+    else if(auxA.con_vacio == 0 && auxA.con_lleno == 0){
+        auxA.buffer[auxA.cantidadBuffer] = a;
+        auxA.cantidadBuffer = auxA.cantidadBuffer+1;
+        if(auxA.cantidadBuffer == auxA.totalBuffer - 1){
+            auxA.con_lleno = 1;
+            auxA.turno = 0;
             pthread_mutex_unlock(&auxA.mutex);
-            auxA.turno = 1;
             signal(auxA.sem,NULL);
         }
     }
 }
 
-
+void monitor_leer(monitor b) {
+    if(auxA.turno == 0){
+        wait(&auxA.sem);
+    }
+    if(auxA.con_lleno == 1){
+        pthread_mutex_lock(&auxA.mutex);
+        printf("Cantidad buffer %d\n",auxA.cantidadBuffer);
+        for(int i = 0 ; i < auxA.cantidadBuffer;i++){
+            printf("%s",auxA.buffer[i]);
+        }
+        auxA.cantidadBuffer = 0;
+        auxA.con_lleno = 0;
+        auxA.con_vacio = 1;
+        auxA.turno = 1;
+        pthread_mutex_unlock(&auxA.mutex);
+        signal(auxA.sem,NULL);
+    }
+}   
 
 
 //FUNCIONES GENERALES
@@ -127,8 +110,10 @@ void inicializarMonitor(monitor *monitor)
     monitor->con_vacio = 1;
     monitor->totalBuffer = 10;
     monitor->cantidadBuffer = 0;
+
     monitor->turno = 0;
     monitor->sem = 1;
+
     pthread_mutex_init(&aux,NULL);
 }
 
@@ -210,12 +195,13 @@ int main(int argc, char const *argv[])
 
     for(int i = 0 ; i < 10 ; i ++)
     {
-        monitor_escribir("\nAHHHHHH",auxA);
+        monitor_escribir("AHHHHHH\n",auxA);
     }
     for(int i = 0 ; i < 10 ; i ++)
     {
-        monitor_escribir("\nUAJDAJSDKAHJ",auxA);
+        monitor_escribir("BHBHBHB\n",auxA);
     }
+
     pthread_join(auxB, NULL);
     
 
@@ -231,6 +217,5 @@ int main(int argc, char const *argv[])
         //A medida que se lea se les asigna los datos a las hebras por medio del monitor.
     
     //Escribir resultados.
-
     return 0;
 }
