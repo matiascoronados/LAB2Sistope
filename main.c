@@ -91,16 +91,34 @@ entrada* analizarEntradas(int argc,char const *argv[])
     }
 }
 
+
+
+void *funcion (void* entrada)
+{
+    printf("\nENTRE");
+}
+
 //--------------------------------------------------------------------------------
 
 //MAIN
 int main(int argc, char const *argv[])
 {
     entrada* entradas = analizarEntradas(argc, argv);
+
+
     int numeroHebras = 10;
+
     pthread_t *hebras;
 
     hebras = (pthread_t*)malloc(numeroHebras*sizeof(pthread_t)); 
+
+    for(int i = 0 ; i < numeroHebras;i++){
+        pthread_create(&hebras[i], NULL, funcion, (void *)entrada);
+    }
+
+    for(int i = 0 ; i < numeroHebras;i++){
+        pthread_join(hebras[i], NULL);
+    }
 
     //Crear hebras por cantidad de discos
     //Crear monitor por cantidad de hebras
