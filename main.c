@@ -24,26 +24,6 @@ typedef struct inputParameters
     int bandera;
 }entrada;
 
-typedef struct monitorM { 
-       int size, theArray[1];
-        int emptyFull;    
-        void put(int x) {      
-            if (size == ARRAY_SIZE) wait(emptyFull);
-                theArray[size] = x;      
-                size++;      
-            if (size == 1) 
-            broadcast(emptyFull);    
-            }    
-        int get() {      
-            if (size == 0) 
-                wait(emptyFull);       
-                size--;      
-            if (size == ARRAY_SIZE-1) 
-                broadcast(emptyFull);
-            return theArray[size];
-            }
-            }ahh;
-
 //--------------------------------------------------------------------------------
 
 //FUNCIONES
@@ -103,7 +83,7 @@ void *funcion (void* entrada)
 //MAIN
 int main(int argc, char const *argv[])
 {
-    entrada* entradas = analizarEntradas(argc, argv);
+    //entrada* entradas = analizarEntradas(argc, argv);
 
 
     int numeroHebras = 10;
@@ -113,7 +93,7 @@ int main(int argc, char const *argv[])
     hebras = (pthread_t*)malloc(numeroHebras*sizeof(pthread_t)); 
 
     for(int i = 0 ; i < numeroHebras;i++){
-        pthread_create(&hebras[i], NULL, funcion, (void *)entrada);
+        pthread_create(&hebras[i], NULL, funcion, (void *)1);
     }
 
     for(int i = 0 ; i < numeroHebras;i++){
