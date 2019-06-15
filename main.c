@@ -184,31 +184,28 @@ void *funcion (void* entrada)
     float acumPoten= 0;
 
     while(padreleyendoA == 1){
+
       if(monitor->capacidadBuffer != monitor->cantidadDeDatos){
-        printf("\nENTRE\n");
         pthread_cond_wait(&monitor->bufferLleno, &monitor->mutex);
+        printf("la cantidad de datos en mi buffer es: %d\n", monitor -> cantidadDeDatos);
       }
-      if(padreleyendoA == 0){
-            printf("\nAHHH LIBERADOB\n");
-            pthread_exit(0);
-        }
-        printf("\n Entree!!");
-        for(int i = 0; i < monitor->cantidadDeDatos; i++)
-        {
-            datos dato = monitor->buffer[i];
-            acumMedia = mediaReal(&dato, acumMedia);
-            acumMediana = medianaImaginaria(&dato, acumMediana);
-            acumRuido = ruidoTotal(&dato, acumRuido);
-            acumPoten = potencia(&dato, acumPoten);
 
-            //NUEVO
-            cantidadVisibilidades++;
-            //NUEVO
+      for(int i = 0; i < monitor->cantidadDeDatos; i++)
+      {
+        datos dato = monitor->buffer[i];
+        acumMedia = mediaReal(&dato, acumMedia);
+        acumMediana = medianaImaginaria(&dato, acumMediana);
+        acumRuido = ruidoTotal(&dato, acumRuido);
+        acumPoten = potencia(&dato, acumPoten);
 
-        }
-        //ya calcule, debo decir que el buffer esta bufferVacio
-        monitor->cantidadDeDatos = 0;
-        pthread_cond_signal(&monitor->bufferVacio);
+        //NUEVO
+        cantidadVisibilidades++;
+        //NUEVO
+      }
+      //ya calcule, debo decir que el buffer esta bufferVacio
+      monitor->cantidadDeDatos = 0;
+      printf("vacie mi buffer\n");
+      pthread_cond_signal(&monitor->bufferVacio);
     }
 
     //NUEVO
@@ -219,27 +216,19 @@ void *funcion (void* entrada)
     asignarResultados(acumMedia,acumMediana,acumRuido,acumPoten,cantidadVisibilidades,numeroDisco);
     //NUEVO
 
+    /*f (monitor -> cantidadDeDatos != 0) {
+      for(int i = 0; i < monitor->cantidadDeDatos; i++){
+        datos dato = monitor->buffer[i];
+        acumMedia = mediaReal(&dato, acumMedia);
+        acumMediana = medianaImaginaria(&dato, acumMediana);
+        acumRuido = ruidoTotal(&dato, acumRuido);
+        acumPoten = potencia(&dato, acumPoten);
+      }
+      monitor->cantidadDeDatos = 0;
+    }*/
 
-    //pthread_cond_wait(&monitor->bufferRestante, &monitor->mutex);
-    //puede que el buffer tenga datos pero no esta bufferLLeno
-    /*
-    pthread_cond_signal(&monitor->bufferLleno);
-    pthread_cond_wait(&monitor->bufferRestanteL, &monitor->mutex);
-    printf("\nAHHHHHHHH");
-    for(int i = 0; i < monitor->cantidadDeDatos; i++){
-      datos dato = monitor->buffer[i];
-      acumMedia = mediaReal(&dato, acumMedia);
-      acumMediana = medianaImaginaria(&dato, acumMediana);
-      acumRuido = ruidoTotal(&dato, acumRuido);
-      acumPoten = potencia(&dato, acumPoten);
-      printf("\n%f %f AHHHH",acumMedia, dato.u);
-    }
-    printf("\n");
-    pthread_cond_signal(&monitor->bufferRestanteV);
-    */
-
-
-  //  printf("\n Media = %f \n",acumMedia);
+    printf("termine mi ejecucion\n");
+    pthread_cond_signal(&monitor -> bufferVacio);
 }
 
 
@@ -284,49 +273,54 @@ void procesarDatos(monitor **monitores, entrada *entrada){
   char aux5[50];
   char aux6[50];
   int disco;
+  fscanf(archivo, " %[^','], %[^','], %[^','], %[^','], %s",aux2, aux3, aux4, aux5, aux6);
 
-  while(fscanf(archivo, " %[^','], %[^','], %[^','], %[^','], %s",aux2, aux3, aux4, aux5, aux6) == 5){
-      datos *nuevo = crearDato();
-      sscanf(aux2, "%f", &nuevo -> u);
-      sscanf(aux3, "%f", &nuevo -> v);
-      sscanf(aux4, "%f", &nuevo -> real);
-      sscanf(aux5, "%f", &nuevo -> imag);
-      sscanf(aux6, "%f", &nuevo -> ruido);
-      disco = calcularDisco(entrada, nuevo);
+  while(!feof(archivo)){
+      if (monitores[disco] -> cantidadDeDatos != monitores[disco] -> capacidadBuffer) {
 
-    if(monitores[disco]->cantidadDeDatos == monitores[disco]->capacidadBuffer){
-      pthread_cond_signal(&monitores[disco]->bufferLleno);
-      pthread_cond_wait(&monitores[disco]->bufferVacio, &monitores[disco]->mutex);
-    }
+        datos *nuevo = crearDato();
+        sscanf(aux2, "%f", &nuevo -> u);
+        sscanf(aux3, "%f", &nuevo -> v);
+        sscanf(aux4, "%f", &nuevo -> real);
+        sscanf(aux5, "%f", &nuevo -> imag);
+        sscanf(aux6, "%f", &nuevo -> ruido);
+        disco = calcularDisco(entrada, nuevo);
+
         int cantidad = monitores[disco]->cantidadDeDatos;
+
         datos auxiliar;
         auxiliar.u = nuevo->u;
         auxiliar.v = nuevo->v;
         auxiliar.real = nuevo->real;
         auxiliar.imag = nuevo->imag;
         auxiliar.ruido = nuevo->ruido;
-        //printf("\nMande un dato: %d",cantidad);
+
         monitores[disco]->buffer[cantidad] = auxiliar;
         monitores[disco]->cantidadDeDatos = monitores[disco]->cantidadDeDatos + 1;
-    }
 
-    padreleyendoA = 0;
-    printf("\nTERMINE DE LEER Y MANDAR INFO\n");
-
-    for(int i = 0 ; i < entrada->ndiscos;i++)
-    {
-        pthread_cond_signal(&monitores[i]->bufferLleno);
-        //pthread_cond_wait(&monitores[i]->bufferLleno,&monitores[i]->mutex);
+        printf("Padre lee el dato: %s\n", aux2);
+        fscanf(archivo, " %[^','], %[^','], %[^','], %[^','], %s",aux2, aux3, aux4, aux5, aux6);
+      }
+      else{
+        printf("Padre llena el buffer %d\n", disco);
+        pthread_cond_signal(&monitores[disco]->bufferLleno);
+        pthread_cond_wait(&monitores[disco]->bufferVacio, &monitores[disco]->mutex);
+      }
     }
+    printf("padre deja de leer\n");
+    padreleyendoA=0;
 
-    /*
-    for(int i = 0 ; i < entrada->ndiscos;i++)
-    {
-        pthread_cond_signal(&monitores[i]->bufferRestanteL);
-        pthread_cond_wait(&monitores[i]->bufferRestanteV,&monitores[i]->mutex);
-        printf("\nLIBERE AL ZANGANO %d\n",i);
+    pthread_cond_signal(&monitores[disco] -> bufferLleno);
+
+    for (int i = 0; i < entrada -> ndiscos; i++) {
+      if (monitores[i] -> cantidadDeDatos != 0) {
+        printf("quedo un buffer con datos\n");
+        pthread_cond_signal(&monitores[i] -> bufferLleno);
+        pthread_cond_wait(&monitores[i] -> bufferVacio, &monitores[i] -> mutex);
+        printf("ya se vacio\n");
+      }
     }
-    */
+    printf("cago padre\n");
   }
 
 
