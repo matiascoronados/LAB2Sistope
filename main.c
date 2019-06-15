@@ -304,7 +304,7 @@ void procesarDatos(monitor **monitores, entrada *entrada){
       else{
         printf("Padre llena el buffer %d\n", disco);
         pthread_cond_signal(&monitores[disco]->bufferLleno);
-        pthread_cond_wait(&monitores[disco]->bufferVacio, &monitores[disco]->mutex);
+        //pthread_cond_wait(&monitores[disco]->bufferVacio, &monitores[disco]->mutex);
       }
     }
     printf("padre deja de leer\n");
@@ -313,12 +313,12 @@ void procesarDatos(monitor **monitores, entrada *entrada){
     pthread_cond_signal(&monitores[disco] -> bufferLleno);
 
     for (int i = 0; i < entrada -> ndiscos; i++) {
-      if (monitores[i] -> cantidadDeDatos != 0) {
+      //if (monitores[i] -> cantidadDeDatos != 0) {
         printf("quedo un buffer con datos\n");
         pthread_cond_signal(&monitores[i] -> bufferLleno);
-        pthread_cond_wait(&monitores[i] -> bufferVacio, &monitores[i] -> mutex);
+        //pthread_cond_wait(&monitores[i] -> bufferVacio, &monitores[i] -> mutex);
         printf("ya se vacio\n");
-      }
+    //  }
     }
     printf("cago padre\n");
   }
