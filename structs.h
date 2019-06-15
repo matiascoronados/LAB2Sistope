@@ -9,19 +9,37 @@
 #ifndef CLASES_H
 #define CLASES_H
 
+
+
+typedef struct inputData
+{
+    float u;
+    float v;
+    float real;
+    float imag;
+    float ruido;
+}datos;
+
 typedef struct Monitor{
 
   pthread_mutex_t mutex;
-  pthread_mutex_t mutexLleno;
-  pthread_mutex_t mutexVacio;
-  pthread_mutex_t modificarA;
-  pthread_mutex_t modificarB;
   pthread_cond_t bufferLleno;
   pthread_cond_t bufferVacio;
   int capacidadBuffer;
   int cantidadDeDatos;
-  int buffer[20];
+  datos *buffer;
 
 }monitor;
+
+
+typedef struct inputParameters
+{
+    const char *archivoV;
+    const char *archivoS;
+    int ndiscos;
+    int ancho;
+    int bandera;
+    int buffer;
+}entrada;
 
 #endif
