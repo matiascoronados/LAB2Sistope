@@ -20,11 +20,29 @@ typedef struct inputData
     float ruido;
 }datos;
 
+
+//NUEVO
+typedef struct outputData
+{
+    float acumMedia;
+    float acumMediana;
+    float acumRuido;
+    float acumPoten;
+    int cantidadVisibilidades;
+    int numeroDisco;
+}resultados;
+//NUEVO
+
 typedef struct Monitor{
 
   pthread_mutex_t mutex;
   pthread_cond_t bufferLleno;
   pthread_cond_t bufferVacio;
+
+  //NUEVO
+  int numeroDisco;
+  //NUEVO
+
   int capacidadBuffer;
   int cantidadDeDatos;
   datos *buffer;
