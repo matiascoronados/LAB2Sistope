@@ -8,15 +8,17 @@
 #include <pthread.h>
 #include <math.h>
 
-
+// -Descripcion: Se inicializa y retorna un puntero a una estructura de datos.
+// -Entradas: N/A
+// -Salidas: Puntero a una estructura de datos inicializada.
 datos *crearDato(){
     datos *nuevo = malloc(sizeof(datos));
     return nuevo;
 }
 
-
-
-//NUEVO
+// -Descripcion: Se le asigna los valores de los resultados a una estrucutra del mismo nombre.
+// -Entradas: Acumuladores para los valores de la media real y imaginaria, la potencia, ruido, visibilidades y numero de disco.
+// -Salidas: N/A
 void asignarResultados(float acumMedia, float acumMediana, float acumRuido, float acumPoten, int cantidadVisibilidades,int numeroDisco){
     resultadosExperimento[numeroDisco].acumMedia = acumMedia;
     resultadosExperimento[numeroDisco].acumMediana = acumMediana;
@@ -25,12 +27,11 @@ void asignarResultados(float acumMedia, float acumMediana, float acumRuido, floa
     resultadosExperimento[numeroDisco].cantidadVisibilidades = cantidadVisibilidades;
     resultadosExperimento[numeroDisco].numeroDisco = numeroDisco;
 }
-//NUEVO
 
-
-
-entrada* crearEntrada()
-{
+// -Descripcion: Se inicializa y retorna un puntero a una entrada
+// -Entradas: N/A
+// -Salidas: Puntero a una estructura de entrada inicializada.
+entrada* crearEntrada(){
     entrada *p_entrada = malloc(sizeof(entrada));
     p_entrada->archivoV = "null";
     p_entrada->archivoS = "null";
@@ -41,25 +42,25 @@ entrada* crearEntrada()
     return p_entrada;
 }
 
+// -Descripcion: Funcion que sirve para inicializar un puntero de un monitor.
+// -Entradas: Puntero a una estrucuta de monitor, otra de entradas y un entero que indica el numero de disco que
+//            pertenece el monitor.
+// -Salidas: N/A
 void inicializarMonitor(monitor *mon, entrada *entradas, int numeroDisco){
-
-  //monitor *nuevo = (monitor*)malloc(sizeof(monitor));
   pthread_mutex_init(&mon -> mutex, NULL);
   pthread_cond_init(&mon -> bufferLleno, NULL);
   pthread_cond_init(&mon -> bufferVacio, NULL);
-  //pthread_cond_init(&mon -> bufferRestanteL, NULL);
-  //pthread_cond_init(&mon -> bufferRestanteV, NULL);
   mon -> capacidadBuffer = entradas -> buffer;
   mon -> cantidadDeDatos = 0;
-
-  //NUEVO
   mon -> numeroDisco = numeroDisco;
-  //NUEVO
-
-
   mon -> buffer = (datos*)malloc(sizeof(datos)*entradas -> buffer);
 }
 
+// -Descripcion: Analiza las entradas del main, en busca de los parametros solicitados, en los casos
+//               de que estos sean validos, se retornara un punto a una estrucuta entrada con los
+//               respectivos valores, en caso contrario se detendra la ejecucion del programa.
+// -Entradas: Entero argc que indica la cantida de elementos que tiene el arreglo argv
+// -Salidas: Puntero a una estructura de entrada inicializada.
 entrada* analizarEntradas(int argc,char const *argv[])
 {
     entrada *p_entrada = crearEntrada();
@@ -105,7 +106,6 @@ entrada* analizarEntradas(int argc,char const *argv[])
         }
     }
 }
-
 
 // -Descripcion: De los datos de entrada se obtiene el dato real para luego sumarlo con un acumulador y retornarlo.
 // -Entradas: Datos de entrada, flotante acumulador
@@ -154,25 +154,25 @@ datos* crearTabla(){
     return p_datos;
 }
 
-//-------------------------------------------------------------------------------- PSEUDO CODIGO
-void *funcion (void* entrada)
-{
+// -Descripcion: Funcion en que trabaja las hebras creadas. Dentro de esta se encuentran las estructuras y elementos
+//               necesarios para que se lea continuamente datos de la hebra "padre", los cuales se almacenaran en
+//               acumuladores de la misma funcion.
+//               Al final, se escriben los resultados dentro de una estructura que comparten todas las hebras.
+// -Entrada: Entrada void que se setea a un monitor de la hebra.
+// -Salida: N/A
+void *funcion (void* entrada){
     monitor *monitor = malloc(sizeof(monitor));
     monitor = entrada;
-
     int cantidadVisibilidades = 0;
     float acumMedia = 0;
     float acumMediana = 0;
     float acumRuido = 0;
     float acumPoten= 0;
-
     while(padreleyendoA == 1){
-
       if(monitor->capacidadBuffer != monitor->cantidadDeDatos){
         pthread_cond_wait(&monitor->bufferLleno, &monitor->mutex);
-        printf("la cantidad de datos en mi buffer es: %d\n", monitor -> cantidadDeDatos);
+        //printf("la cantidad de datos en mi buffer es: %d\n", monitor -> cantidadDeDatos);
       }
-
       for(int i = 0; i < monitor->cantidadDeDatos; i++)
       {
         datos dato = monitor->buffer[i];
@@ -180,41 +180,23 @@ void *funcion (void* entrada)
         acumMediana = medianaImaginaria(&dato, acumMediana);
         acumRuido = ruidoTotal(&dato, acumRuido);
         acumPoten = potencia(&dato, acumPoten);
-
-        //NUEVO
         cantidadVisibilidades++;
-        //NUEVO
       }
-      //ya calcule, debo decir que el buffer esta bufferVacio
       monitor->cantidadDeDatos = 0;
-      printf("vacie mi buffer\n");
+      //printf("vacie mi buffer\n");
       pthread_cond_signal(&monitor->bufferVacio);
     }
-
-    //NUEVO
-    //ESTO DEBE IR AL FINAL DE TODO EL PROCESAMIENTO.
     int numeroDisco = monitor->numeroDisco;
     if(acumMedia != 0 ){acumMedia = acumMedia / cantidadVisibilidades;}
     if(acumMediana != 0){acumMediana = acumMediana / cantidadVisibilidades;}
     asignarResultados(acumMedia,acumMediana,acumRuido,acumPoten,cantidadVisibilidades,numeroDisco);
-    //NUEVO
-
-    /*f (monitor -> cantidadDeDatos != 0) {
-      for(int i = 0; i < monitor->cantidadDeDatos; i++){
-        datos dato = monitor->buffer[i];
-        acumMedia = mediaReal(&dato, acumMedia);
-        acumMediana = medianaImaginaria(&dato, acumMediana);
-        acumRuido = ruidoTotal(&dato, acumRuido);
-        acumPoten = potencia(&dato, acumPoten);
-      }
-      monitor->cantidadDeDatos = 0;
-    }*/
-
-    printf("termine mi ejecucion\n");
+    //printf("termine mi ejecucion\n");
     pthread_cond_signal(&monitor -> bufferVacio);
 }
 
-
+// -Descripcion: Calcula la distancia de un dato determinado.
+// -Entradas: datos* datos.
+// -Salidas: Un dato de tipo float correspondiente a la distancia calculada.
 float distanciaVisibilidad(datos *datos)
 {
     float u = datos->u;
@@ -223,6 +205,10 @@ float distanciaVisibilidad(datos *datos)
     return sqrtf(resultado);
 }
 
+// -Descripcion: Se encarga de analizar a cual disco le pertenece un dato de entrada, en relacion a las entradas
+//               del programa.
+// -Enntardas: Puntero a una estructuras de entradas, y otro a datos.
+// -Salidas: Entero que indica el numero del disco.
 int calcularDisco(entrada *entradas, datos *dato){
 
   float distancia = distanciaVisibilidad(dato);
@@ -230,16 +216,11 @@ int calcularDisco(entrada *entradas, datos *dato){
   float limSuperior = entradas -> ancho;
   int datoPosicionado = 0;
   int discoDelDato = 0;
-  //Funcion para posicionar.
-
-  while(datoPosicionado == 0)
-  {
-      if( (limInferior <= distancia && limSuperior > distancia) || discoDelDato == entradas -> ndiscos-1)
-      {
+  while(datoPosicionado == 0){
+      if( (limInferior <= distancia && limSuperior > distancia) || discoDelDato == entradas -> ndiscos-1){
           return discoDelDato;
       }
-      else
-      {
+      else{
           limInferior = limSuperior;
           limSuperior = limSuperior + entradas -> ancho;
           discoDelDato++;
@@ -247,6 +228,11 @@ int calcularDisco(entrada *entradas, datos *dato){
   }
 }
 
+// -Descripcion: Funcion que se encarga de distribuir los datos del experimento entre las hebras, aplicando
+//               el uso de monitores para ello. La funcion entragara los datos a medida que los vaya leyendo
+//               del archivo de entrada.
+// -Entradas: Puntero doble a un arreglo de monitores, y un puntero a una estructura de entradas.
+// -Salidas: N/A
 void procesarDatos(monitor **monitores, entrada *entrada){
   FILE *archivo;
   archivo = fopen(entrada -> archivoV,"r");
@@ -281,27 +267,21 @@ void procesarDatos(monitor **monitores, entrada *entrada){
         monitores[disco]->buffer[cantidad] = auxiliar;
         monitores[disco]->cantidadDeDatos = monitores[disco]->cantidadDeDatos + 1;
 
-        printf("Padre lee el dato: %s\n", aux2);
+        //printf("Padre lee el dato: %s\n", aux2);
         fscanf(archivo, " %[^','], %[^','], %[^','], %[^','], %s",aux2, aux3, aux4, aux5, aux6);
       }
       else{
-        printf("Padre llena el buffer %d\n", disco);
+        //printf("Padre llena el buffer %d\n", disco);
         pthread_cond_signal(&monitores[disco]->bufferLleno);
-        //pthread_cond_wait(&monitores[disco]->bufferVacio, &monitores[disco]->mutex);
       }
     }
-    printf("padre deja de leer\n");
+    //printf("padre deja de leer\n");
     padreleyendoA=0;
-
     pthread_cond_signal(&monitores[disco] -> bufferLleno);
-
     for (int i = 0; i < entrada -> ndiscos; i++) {
-      //if (monitores[i] -> cantidadDeDatos != 0) {
-        printf("quedo un buffer con datos\n");
+        //printf("quedo un buffer con datos\n");
         pthread_cond_signal(&monitores[i] -> bufferLleno);
-        //pthread_cond_wait(&monitores[i] -> bufferVacio, &monitores[i] -> mutex);
-        printf("ya se vacio\n");
-    //  }
+        //printf("ya se vacio\n");
     }
-    printf("cago padre\n");
+    //printf("murio padre\n");
   }

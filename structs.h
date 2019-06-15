@@ -9,10 +9,7 @@
 #ifndef CLASES_H
 #define CLASES_H
 
-
-
-typedef struct inputData
-{
+typedef struct inputData{
     float u;
     float v;
     float real;
@@ -20,10 +17,7 @@ typedef struct inputData
     float ruido;
 }datos;
 
-
-//NUEVO
-typedef struct outputData
-{
+typedef struct outputData{
     float acumMedia;
     float acumMediana;
     float acumRuido;
@@ -31,27 +25,18 @@ typedef struct outputData
     int cantidadVisibilidades;
     int numeroDisco;
 }resultados;
-//NUEVO
 
 typedef struct Monitor{
-
   pthread_mutex_t mutex;
   pthread_cond_t bufferLleno;
   pthread_cond_t bufferVacio;
-
-  //NUEVO
   int numeroDisco;
-  //NUEVO
-
   int capacidadBuffer;
   int cantidadDeDatos;
   datos *buffer;
-
 }monitor;
 
-
-typedef struct inputParameters
-{
+typedef struct inputParameters{
     const char *archivoV;
     const char *archivoS;
     int ndiscos;

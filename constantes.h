@@ -10,19 +10,14 @@
 #ifndef CONSTANTES_H
 #define CONSTANTES_H
 
-//CONSTANTES
-char* parametros[6] = {"-i","-o","-n","-d","-s","-b"};
-
-
-//NUEVO
-resultados* resultadosExperimento;
-//NUEVO
-
-
-int padreleyendoA=1;
-
-
 #define FLOATMAX 20
 #define BUFFERLECTURA 100
+
+//Usada para verificar los parametros de entrada al main.
+char* parametros[6] = {"-i","-o","-n","-d","-s","-b"};
+//Utilizada como variable global entre las hebras para almacenar informacion.
+resultados* resultadosExperimento;
+//Entero que norma el comportamiento de lectura del padre sobre los hijos.
+int padreleyendoA=1;
 
 #endif
